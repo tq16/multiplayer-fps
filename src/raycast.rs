@@ -1,4 +1,3 @@
-
 use crate::maze::Maze;
 
 pub struct WallHit {
