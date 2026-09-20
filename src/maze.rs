@@ -1,20 +1,4 @@
-const LAYOUT: [&str; 15] = [
-    "###############",
-    "#.....#.......#",
-    "#.###.#.#####.#",
-    "#.#...#.....#.#",
-    "#.#.#######.#.#",
-    "#.#.........#.#",
-    "#.#####.#####.#",
-    "#.....#.#.....#",
-    "#####.#.#.###.#",
-    "#.....#...#...#",
-    "#.#########.#.#",
-    "#...........#.#",
-    "#.###########.#",
-    "#.............#",
-    "###############",
-];
+use crate::levels;
 
 pub struct Maze {
     tiles: Vec<Vec<bool>>,
@@ -22,12 +6,18 @@ pub struct Maze {
 
 impl Maze {
     pub fn new() -> Self {
-        let tiles = LAYOUT
+        Self::from_level(1).expect("Level 1 must exist")
+    }
+
+    pub fn from_level(level: u8) -> Option<Self> {
+        let layout = levels::layout(level)?;
+
+        let tiles = layout
             .iter()
             .map(|row| row.bytes().map(|tile| tile == b'#').collect())
             .collect();
 
-        Self { tiles }
+        Some(Self { tiles })
     }
 
     pub fn width(&self) -> usize {

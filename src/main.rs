@@ -1,12 +1,13 @@
-mod maze;
-mod player;
-mod raycast;
+mod controls;
+mod game;
+mod hud;
+mod opponents;
 mod render;
 
-use macroquad::prelude::*;
+use std::io;
 
-use maze::Maze;
-use player::{MovementInput, Player};
+use macroquad::prelude::*;
+use multiplayer_fps::client::NetworkClient;
 
 fn window_conf() -> Conf {
     Conf {
@@ -17,32 +18,10 @@ fn window_conf() -> Conf {
     }
 }
 
-fn key_axis(positive: KeyCode, negative: KeyCode) -> f32 {
-    let positive = if is_key_down(positive) { 1.0 } else { 0.0 };
-    let negative = if is_key_down(negative) { 1.0 } else { 0.0 };
+fn main() -> io::Result<()> {
+    let client = NetworkClient::from_prompt()?;
 
-    positive - negative
-}
+    macroquad::Window::from_config(window_conf(), game::run(client));
 
-#[macroquad::main(window_conf)]
-async fn main() {
-    let maze = Maze::new();
-    let mut player = Player::new();
-
-    loop {
-        if is_key_pressed(KeyCode::Escape) {
-            break;
-        }
-
-        let input = MovementInput {
-            forward: key_axis(KeyCode::W, KeyCode::S),
-            strafe: key_axis(KeyCode::D, KeyCode::A),
-            turn: key_axis(KeyCode::Right, KeyCode::Left),
-        };
-
-        player.update(&input, get_frame_time(), &maze);
-        render::draw_game(&maze, &player);
-
-        next_frame().await;
-    }
+    Ok(())
 }

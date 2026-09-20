@@ -1,5 +1,4 @@
 use crate::maze::Maze;
-
 pub struct WallHit {
     pub distance: f32,
     pub horizontal_side: bool,

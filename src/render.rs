@@ -1,8 +1,8 @@
+use crate::opponents;
 use macroquad::prelude::*;
-
-use crate::maze::Maze;
-use crate::player::{PLAYER_RADIUS, Player};
-use crate::raycast::cast_ray;
+use multiplayer_fps::maze::Maze;
+use multiplayer_fps::player::{PLAYER_RADIUS, Player};
+use multiplayer_fps::raycast::cast_ray;
 
 const FOV_DEGREES: f32 = 66.0;
 const MAX_RAYS: usize = 800;
@@ -13,13 +13,31 @@ const WALL: Color = Color::new(0.62, 0.69, 0.80, 1.0);
 const ACCENT: Color = Color::new(0.2, 0.9, 0.7, 1.0);
 const MAP_WALL: Color = Color::new(0.32, 0.39, 0.49, 1.0);
 
-pub fn draw_game(maze: &Maze, player: &Player) {
-    draw_world(maze, player);
-    draw_minimap(maze, player);
+pub fn draw_game(maze: &Maze, player: &Player, players: &[(u32, Player)], local_id: u32) {
+    // One wall distance per rendered column.
+    let mut wall_distances = [f32::INFINITY; MAX_RAYS];
+
+    let ray_count = (screen_width().ceil() as usize).clamp(1, MAX_RAYS);
+
+    let distances = &mut wall_distances[..ray_count];
+
+    draw_world(maze, player, distances);
+
+    opponents::draw(player, players, local_id, distances, FOV_DEGREES);
+
+    draw_minimap(maze, player, players, local_id);
     draw_hud();
+
+    draw_text(
+        &format!("Players: {} | Your ID: {local_id}", players.len()),
+        24.0,
+        105.0,
+        22.0,
+        ACCENT,
+    );
 }
 
-fn draw_world(maze: &Maze, player: &Player) {
+fn draw_world(maze: &Maze, player: &Player, wall_distances: &mut [f32]) {
     let width = screen_width();
     let height = screen_height();
 
@@ -40,10 +58,10 @@ fn draw_world(maze: &Maze, player: &Player) {
     let plane_y = direction_x * half_fov_tangent;
 
     let projection_distance = width / (2.0 * half_fov_tangent);
-    let ray_count = (width.ceil() as usize).clamp(1, MAX_RAYS);
+    let ray_count = wall_distances.len();
     let column_width = width / ray_count as f32;
 
-    for column in 0..ray_count {
+    for (column, wall_distance) in wall_distances.iter_mut().enumerate() {
         let camera_x = 2.0 * (column as f32 + 0.5) / ray_count as f32 - 1.0;
 
         let ray_x = direction_x + plane_x * camera_x;
@@ -56,6 +74,7 @@ fn draw_world(maze: &Maze, player: &Player) {
         // Camera-plane rays give perpendicular distance,
         // keeping straight walls from appearing curved.
         let distance = hit.distance.max(0.001);
+        *wall_distance = distance;
         let wall_height = projection_distance / distance;
 
         let top = ((height - wall_height) * 0.5).max(0.0);
@@ -80,7 +99,7 @@ fn draw_world(maze: &Maze, player: &Player) {
     }
 }
 
-fn draw_minimap(maze: &Maze, player: &Player) {
+fn draw_minimap(maze: &Maze, player: &Player, players: &[(u32, Player)], local_id: u32) {
     let map_size = (screen_width() * 0.23)
         .min(screen_height() * 0.32)
         .min(220.0);
@@ -116,6 +135,26 @@ fn draw_minimap(maze: &Maze, player: &Player) {
                 color,
             );
         }
+    }
+
+    for (id, other) in players {
+        if *id == local_id {
+            continue;
+        }
+
+        let x = offset_x + other.x * tile_size;
+        let y = offset_y + other.y * tile_size;
+
+        draw_circle(x, y, (PLAYER_RADIUS * tile_size).max(2.0), ORANGE);
+
+        draw_line(
+            x,
+            y,
+            x + other.angle.cos() * tile_size * 0.7,
+            y + other.angle.sin() * tile_size * 0.7,
+            2.0,
+            ORANGE,
+        );
     }
 
     let player_x = offset_x + player.x * tile_size;
@@ -171,7 +210,7 @@ fn draw_hud() {
     draw_rectangle(0.0, screen_height() - 38.0, screen_width(), 38.0, BLACK);
 
     draw_text(
-        "W/S: forward/back   A/D: strafe   Arrows: turn   ESC: quit",
+        "WASD: move | Mouse/Arrows: turn | Tab/Esc: release",
         20.0,
         screen_height() - 13.0,
         20.0,
