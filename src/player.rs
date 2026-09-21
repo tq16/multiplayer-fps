@@ -1,7 +1,7 @@
 use crate::maze::Maze;
 use std::f32::consts::TAU;
 
-const MOVE_SPEED: f32 = 3.0;
+pub const MOVE_SPEED: f32 = 3.0;
 const TURN_SPEED: f32 = 2.5;
 const MAX_DELTA_TIME: f32 = 0.1;
 
@@ -14,10 +14,17 @@ pub struct MovementInput {
     pub turn: f32,
 }
 
+#[derive(Clone, Copy)]
 pub struct Player {
     pub x: f32,
     pub y: f32,
     pub angle: f32,
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Player {
@@ -78,6 +85,35 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn movement_and_turning_match_at_60_120_and_240_fps() {
+        let maze = Maze::new();
+        for fps in [60, 120, 240] {
+            let mut moving = Player::new();
+            let mut turning = Player::new();
+            for _ in 0..fps {
+                moving.update(
+                    &MovementInput {
+                        forward: 1.0,
+                        ..Default::default()
+                    },
+                    1.0 / fps as f32,
+                    &maze,
+                );
+                turning.update(
+                    &MovementInput {
+                        turn: 1.0,
+                        ..Default::default()
+                    },
+                    1.0 / fps as f32,
+                    &maze,
+                );
+            }
+            assert!((moving.x - 4.5).abs() < 0.0001);
+            assert!((turning.angle - 2.5).abs() < 0.0001);
+        }
+    }
 
     #[test]
     fn player_cannot_walk_through_wall() {

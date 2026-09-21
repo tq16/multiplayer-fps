@@ -4,7 +4,17 @@ pub struct Maze {
     tiles: Vec<Vec<bool>>,
 }
 
+impl Default for Maze {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Maze {
+    pub(crate) fn from_generated_tiles(tiles: Vec<Vec<bool>>) -> Self {
+        Self { tiles }
+    }
+
     pub fn new() -> Self {
         Self::from_level(1).expect("Level 1 must exist")
     }

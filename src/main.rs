@@ -1,13 +1,12 @@
+mod connection_screen;
 mod controls;
+mod effects;
 mod game;
 mod hud;
 mod opponents;
 mod render;
 
-use std::io;
-
 use macroquad::prelude::*;
-use multiplayer_fps::client::NetworkClient;
 
 fn window_conf() -> Conf {
     Conf {
@@ -18,10 +17,6 @@ fn window_conf() -> Conf {
     }
 }
 
-fn main() -> io::Result<()> {
-    let client = NetworkClient::from_prompt()?;
-
-    macroquad::Window::from_config(window_conf(), game::run(client));
-
-    Ok(())
+fn main() {
+    macroquad::Window::from_config(window_conf(), connection_screen::run());
 }

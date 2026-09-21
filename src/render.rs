@@ -29,7 +29,7 @@ pub fn draw_game(maze: &Maze, player: &Player, players: &[(u32, Player)], local_
     draw_hud();
 
     draw_text(
-        &format!("Players: {} | Your ID: {local_id}", players.len()),
+        format!("Players: {} | Your ID: {local_id}", players.len()),
         24.0,
         105.0,
         22.0,
@@ -184,28 +184,7 @@ fn draw_hud() {
     let fps = get_fps();
     let fps_color = if fps > 50 { ACCENT } else { ORANGE };
 
-    draw_text(&format!("FPS: {fps}"), 24.0, 65.0, 22.0, fps_color);
-
-    let center_x = screen_width() * 0.5;
-    let center_y = screen_height() * 0.5;
-
-    draw_line(
-        center_x - 6.0,
-        center_y,
-        center_x + 6.0,
-        center_y,
-        2.0,
-        WHITE,
-    );
-
-    draw_line(
-        center_x,
-        center_y - 6.0,
-        center_x,
-        center_y + 6.0,
-        2.0,
-        WHITE,
-    );
+    draw_text(format!("FPS: {fps}"), 24.0, 65.0, 22.0, fps_color);
 
     draw_rectangle(0.0, screen_height() - 38.0, screen_width(), 38.0, BLACK);
 

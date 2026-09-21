@@ -34,9 +34,19 @@ pub enum ClientMessage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerMessage {
-    Welcome { player_id: u32, level: u8 },
-    Rejected { reason: String },
-    Snapshot { tick: u64, players: Vec<WirePlayer> },
+    Welcome {
+        player_id: u32,
+        level: u8,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        generated: Option<crate::generator::GeneratedMaze>,
+    },
+    Rejected {
+        reason: String,
+    },
+    Snapshot {
+        tick: u64,
+        players: Vec<WirePlayer>,
+    },
 }
 
 pub fn valid_username(username: &str) -> bool {
@@ -64,6 +74,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn welcome_descriptors_fit_and_old_fixed_welcomes_still_decode() {
+        let message = ServerMessage::Welcome {
+            player_id: u32::MAX,
+            level: 0,
+            generated: Some(crate::generator::GeneratedMaze {
+                width: 51,
+                height: 51,
+                ..crate::generator::GeneratedMaze::new(u64::MAX)
+            }),
+        };
+        let bytes = encode(&message).unwrap();
+        assert!(bytes.len() < 200);
+        assert!(matches!(
+            serde_json::from_slice::<ServerMessage>(&bytes).unwrap(),
+            ServerMessage::Welcome {
+                generated: Some(_),
+                ..
+            }
+        ));
+        assert!(matches!(
+            serde_json::from_str::<ServerMessage>(r#"{"Welcome":{"player_id":1,"level":2}}"#)
+                .unwrap(),
+            ServerMessage::Welcome {
+                generated: None,
+                level: 2,
+                ..
+            }
+        ));
+    }
+
+    #[test]
     fn rejects_invalid_usernames() {
         assert!(!valid_username("   "));
         assert!(!valid_username("player\nname"));
@@ -73,9 +114,9 @@ mod tests {
 
     #[test]
     fn full_snapshot_fits_packet_limit() {
-        // Largest coordinates in the current 15×15 maze,
+        // Largest coordinates in the largest generated 51×51 maze,
         // plus maximum IDs, scores, and deaths.
-        let players = vec![(u32::MAX, 15_000, 15_000, 6_284, 2, u32::MAX, u32::MAX,); MAX_PLAYERS];
+        let players = vec![(u32::MAX, 51_000, 51_000, 6_284, 2, u32::MAX, u32::MAX,); MAX_PLAYERS];
 
         let message = ServerMessage::Snapshot {
             tick: u64::MAX,

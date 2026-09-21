@@ -1,5 +1,8 @@
+pub mod bot;
 pub mod client;
 pub mod combat;
+pub mod generator;
+pub mod host_history;
 pub mod levels;
 pub mod maze;
 pub mod player;

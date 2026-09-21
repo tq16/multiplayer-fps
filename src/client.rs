@@ -24,6 +24,7 @@ pub struct NetworkClient {
     pub score: u32,
     pub deaths: u32,
     pub level: u8,
+    pub generated: Option<crate::generator::GeneratedMaze>,
 }
 
 fn prompt(label: &str) -> io::Result<String> {
@@ -62,6 +63,12 @@ impl NetworkClient {
     }
 
     pub fn connect(server: SocketAddr, username: String) -> io::Result<Self> {
+        if !valid_username(&username) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Use a username of 1–20 printable characters.",
+            ));
+        }
         let bind_address = if server.is_ipv4() {
             "0.0.0.0:0"
         } else {
@@ -114,8 +121,14 @@ impl NetworkClient {
                 };
 
                 match message {
-                    ServerMessage::Welcome { player_id, level } => {
-                        if !(1..=3).contains(&level) {
+                    ServerMessage::Welcome {
+                        player_id,
+                        level,
+                        generated,
+                    } => {
+                        if (generated.is_none() && !(1..=3).contains(&level))
+                            || generated.is_some_and(|config| config.build().is_none())
+                        {
                             return Err(io::Error::new(
                                 io::ErrorKind::InvalidData,
                                 "Server sent an unsupported level.",
@@ -137,6 +150,7 @@ impl NetworkClient {
                             score: 0,
                             deaths: 0,
                             level,
+                            generated,
                         });
                     }
                     ServerMessage::Rejected { reason } => {
